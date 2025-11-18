@@ -36,6 +36,14 @@ export default function AddCategoryForm({ onSuccess }: AddCategoryFormProps) {
 
       if (!response.ok) {
         const errorData = await response.json();
+        
+        if (errorData.details && Array.isArray(errorData.details)) {
+          const errorMessages = errorData.details
+            .map((err: any) => `${err.field}: ${err.message}`)
+            .join(', ');
+          throw new Error(errorMessages);
+        }
+        
         throw new Error(errorData.error || 'Failed to add category');
       }
 

@@ -59,11 +59,22 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await request.json();
-    const validatedData = createTransactionSchema.parse(data);
+    const result = createTransactionSchema.safeParse(data);
+
+    if (!result.success) {
+      const errors = result.error.issues.map((issue: any) => ({
+        field: issue.path.join('.'),
+        message: issue.message,
+      }));
+      return NextResponse.json(
+        { error: 'Validation failed', details: errors },
+        { status: 400 }
+      );
+    }
 
     const transaction = await prisma.transaction.create({
       data: {
-        ...validatedData,
+        ...result.data,
         userId: session.user.id,
       },
       include: { category: true },
@@ -72,16 +83,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(transaction, { status: 201 });
   } catch (error: any) {
     console.error('Create transaction error:', error);
-
-    if (error.name === 'ZodError') {
-      return NextResponse.json(
-        { error: 'Validation failed', details: error.errors },
-        { status: 400 }
-      );
-    }
-
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: error.message || 'Internal server error' },
       { status: 500 }
     );
   }

@@ -7,7 +7,20 @@ export async function POST(request: NextRequest) {
   try {
     const data = await request.json();
     
-    const validatedData = signUpSchema.parse(data);
+    const result = signUpSchema.safeParse(data);
+
+    if (!result.success) {
+      const errors = result.error.issues.map((issue: any) => ({
+        field: issue.path.join('.'),
+        message: issue.message,
+      }));
+      return NextResponse.json(
+        { error: 'Validation failed', details: errors },
+        { status: 400 }
+      );
+    }
+
+    const validatedData = result.data;
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
@@ -16,7 +29,7 @@ export async function POST(request: NextRequest) {
 
     if (existingUser) {
       return NextResponse.json(
-        { error: 'User already exists' },
+        { error: 'Email already registered' },
         { status: 400 }
       );
     }
@@ -46,13 +59,6 @@ export async function POST(request: NextRequest) {
     );
   } catch (error: any) {
     console.error('Signup error:', error);
-    
-    if (error.name === 'ZodError') {
-      return NextResponse.json(
-        { error: 'Validation failed', details: error.errors },
-        { status: 400 }
-      );
-    }
 
     if (error.code === 'P2002') {
       return NextResponse.json(
@@ -60,12 +66,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    console.error('Full error details:', {
-      message: error.message,
-      code: error.code,
-      stack: error.stack,
-    });
 
     return NextResponse.json(
       { error: error.message || 'Internal server error' },

@@ -42,11 +42,22 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await request.json();
-    const validatedData = createCategorySchema.parse(data);
+    const result = createCategorySchema.safeParse(data);
+
+    if (!result.success) {
+      const errors = result.error.issues.map((issue: any) => ({
+        field: issue.path.join('.'),
+        message: issue.message,
+      }));
+      return NextResponse.json(
+        { error: 'Validation failed', details: errors },
+        { status: 400 }
+      );
+    }
 
     const category = await prisma.category.create({
       data: {
-        ...validatedData,
+        ...result.data,
         userId: session.user.id,
       },
     });
@@ -54,13 +65,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(category, { status: 201 });
   } catch (error: any) {
     console.error('Create category error:', error);
-
-    if (error.name === 'ZodError') {
-      return NextResponse.json(
-        { error: 'Validation failed', details: error.errors },
-        { status: 400 }
-      );
-    }
 
     if (error.code === 'P2002') {
       return NextResponse.json(
@@ -70,7 +74,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: error.message || 'Internal server error' },
       { status: 500 }
     );
   }
