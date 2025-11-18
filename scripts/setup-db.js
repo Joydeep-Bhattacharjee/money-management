@@ -7,19 +7,14 @@
 const fs = require('fs');
 const path = require('path');
 
-// If DATABASE_URL is not set, create a temporary one for build purposes
+// If DATABASE_URL is not set, don't set a fake one
 if (!process.env.DATABASE_URL) {
-  console.log('⚠️  DATABASE_URL not found, setting fallback for build...');
+  console.log('ℹ️  DATABASE_URL not found in environment');
+  console.log('   This is OK - it will be set in Vercel Environment Variables');
+  console.log('   For local development, use: npx prisma migrate dev');
   
-  // Use a dummy URL that allows the build to proceed
-  process.env.DATABASE_URL = 'postgresql://postgres:postgres@localhost:5432/money-management';
-  
-  // Write it to .env.production if it doesn't exist
-  const envFile = path.join(process.cwd(), '.env.production');
-  if (!fs.existsSync(envFile)) {
-    fs.writeFileSync(envFile, `DATABASE_URL="postgresql://postgres:postgres@localhost:5432/money-management"\n`);
-    console.log('✓ Created .env.production with fallback DATABASE_URL');
-  }
+  // For build purposes, set a placeholder that won't be used
+  process.env.DATABASE_URL = 'postgresql://placeholder:placeholder@placeholder:5432/placeholder';
 }
 
-console.log('✓ DATABASE_URL ready for Prisma');
+console.log('✓ Setup complete - ready for build');
