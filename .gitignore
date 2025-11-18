@@ -8,6 +8,11 @@
 !.yarn/patches
 !.yarn/plugins
 !.yarn/releases
+
+# Prisma
+prisma/prisma/
+prisma/*.db
+prisma/*.db-journal
 !.yarn/versions
 
 # testing
